@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/samriddhi512/diff-cover-js.git"
+    "url": "git+https://github.com/samriddhi512/diff-cover-js.git"
   },
   "homepage": "https://github.com/samriddhi512/diff-cover-js#readme",
   "bugs": {
@@ -27,7 +27,7 @@
     "ci"
   ],
   "bin": {
-    "diff-cover-js": "./dist/cli.js"
+    "diff-cover-js": "dist/cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
