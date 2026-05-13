@@ -1,0 +1,7 @@
+src/
+tsconfig.json
+**/*.map
+.claude/
+.gitignore
+node_modules/
+*.local.json
