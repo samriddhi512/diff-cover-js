@@ -71,8 +71,8 @@ export function getGitDiff (compareRef: string, rangeNotation: RangeNotation = '
 
     for (const chunk of file.chunks) {
       for (const change of chunk.changes) {
-        if (change.type === 'add' && 'ln' in change && typeof (change as Record<string, unknown>).ln === 'number') {
-          addedLines.add((change as { ln: number }).ln);
+        if (change.type === 'add') {
+          addedLines.add(change.ln);
         }
       }
     }
