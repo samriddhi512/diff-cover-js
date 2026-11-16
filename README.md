@@ -29,6 +29,8 @@ diff-cover-js \
   --fail-under 80
 ```
 
+By default this counts committed, staged **and** unstaged changes, like Python diff-cover. See [Uncommitted changes](#uncommitted-changes).
+
 ### Generate HTML + JSON reports
 
 ```bash
@@ -48,7 +50,10 @@ Create `.diff-cover-js.json` in your project root:
   "lcov": "coverage/lcov.info",
   "compareBranch": "origin/main",
   "failUnder": 80,
-  "format": "html:reports/diff-cover.html,json"
+  "format": "html:reports/diff-cover.html,json",
+  "ignoreStaged": false,
+  "ignoreUnstaged": false,
+  "includeUntracked": false
 }
 ```
 
@@ -57,6 +62,22 @@ Then just run:
 ```bash
 diff-cover-js
 ```
+
+### Use it as a library
+
+```ts
+import { getGitDiff, parseLcov, calculateDiffCoverage } from 'diff-cover-js';
+
+const diffs = getGitDiff('origin/main', '...', {
+  ignoreStaged: false,      // optional, same as --ignore-staged
+  ignoreUnstaged: false,    // optional, same as --ignore-unstaged
+  includeUntracked: false,  // optional, same as --include-untracked
+});
+const result = calculateDiffCoverage(diffs, parseLcov('coverage/lcov.info'));
+console.log(result.overallPercent);
+```
+
+`mergeLcovCoverage(into, from)` is also exported for combining coverage records for the same file.
 
 ## CLI flags
 
@@ -70,6 +91,9 @@ diff-cover-js
 | `--no-default-excludes` | off | Skip the built-in test/spec/`.d.ts` file exclusions entirely |
 | `--strict` | off | Treat files missing from coverage data as 0% covered |
 | `--diff-range-notation <...∣..>` | `...` | Git diff range notation (symmetric `...` or simple `..`) |
+| `--ignore-staged` | off | Don't count staged changes |
+| `--ignore-unstaged` | off | Don't count unstaged changes in the working tree |
+| `--include-untracked` | off | Also count untracked files (not ignored by `.gitignore`); every line counts as added |
 | `-q, --quiet` | off | Only print the final percentage, suppress the full report |
 | `-c, --config-file <path>` | auto | Path to config file (auto-discovered if omitted) |
 
@@ -102,11 +126,33 @@ module.exports = {
 
 ## How it works
 
-1. Runs `git diff <compare-branch>...HEAD --unified=0` to get the exact lines you added
-2. Reads `lcov.info` to get per-line hit counts for instrumented files
+1. Finds the base commit (`git merge-base <compare-branch> HEAD`, or the compare branch itself with `--diff-range-notation ..`) and runs `git diff <base> --unified=0` to get the exact lines you added, including staged and unstaged changes
+2. Reads `lcov.info` to get per-line hit counts for instrumented files. If the same source file appears in several `SF:` blocks (Jest multi-project setups, concatenated or sharded reports), or under different paths that resolve to the same file, the blocks are merged by adding hit counts, as `lcov` does
 3. Cross-references: for each added line, is it in the coverage data and was it executed?
 4. Non-executable lines (blank lines, comments, type declarations) are automatically skipped — they don't count for or against coverage
 5. Reports the percentage of your added executable lines that were covered
+
+## Uncommitted changes
+
+> **Changed in 0.2.0:** staged and unstaged changes are now counted by default, matching Python diff-cover. 0.1.x only counted committed changes (`git diff <compare-branch>...HEAD`). In CI with a clean checkout the result is the same as before. If a CI step modifies tracked files before diff-cover-js runs (code generation, `npm install` rewriting `package-lock.json`, version stamping), those edits are now counted as changed lines; with `--strict`, files missing from coverage count as 0%. To get the 0.1.x behaviour, pass `--ignore-staged --ignore-unstaged`.
+
+Line numbers in the report always refer to the file **as it is on disk now**, because that is what your tests ran against when they produced `lcov.info`. To keep them right, each mode uses a single diff against the base instead of combining separate committed/staged/unstaged diffs:
+
+| Mode | Lines counted | How |
+|------|---------------|-----|
+| default | committed + staged + unstaged | `git diff <base>` (base vs working tree) |
+| `--ignore-unstaged` | committed + staged | `git diff --cached <base>` (base vs index), line numbers mapped to the working tree through `git diff` |
+| `--ignore-staged --ignore-unstaged` | committed only | `git diff <base> HEAD`, line numbers mapped to the working tree through `git diff HEAD` |
+| `--ignore-staged` | committed + unstaged | `git diff <base>`, minus the lines whose current content came from a staged change (see below) |
+| `--include-untracked` | adds untracked files | `git ls-files --others --exclude-standard`; every line of each text file counts as added. Binary files, symlinks and empty or unreadable files are skipped. Works with any of the modes above |
+
+When a mode excludes some changes, a line is counted only if its current content comes from a change that is included. For example, with `--ignore-unstaged`, a staged line that you then edited again without staging is not counted, because what is on disk now is the unstaged edit. Lines that a later, excluded change moved are reported at their new position.
+
+**`--ignore-staged` on its own.** No single `git diff` gives "committed + unstaged without staged". Python diff-cover runs the committed and unstaged diffs separately, then for each one removes that diff's deleted line numbers and adds its added ones. It doesn't shift the other line numbers, so they drift when both diffs touch the same file. diff-cover-js instead starts from `git diff <base>` (everything that differs from the base on disk). It then removes the lines added by the staged diff (`git diff --cached HEAD`), after moving them to their working-tree positions with `git diff`. Limitations:
+
+- A line added in a commit and then modified by a staged change counts as staged, so it is excluded. Python counts it, at its line number in `HEAD`.
+- A staged line that you edited again without staging counts as an unstaged change, so it is included.
+- If your git config sets `diff.renames=false`, a file renamed with a staged `git mv` is reported in full by `--ignore-staged` (your config treats it as a new file), but only its committed lines by `--ignore-staged --ignore-unstaged`. This errs towards counting more lines, so it can't hide an uncovered line.
 
 ## Output formats
 
@@ -141,10 +187,23 @@ module.exports = {
 | JSON report | ✓ | ✓ |
 | Markdown report | ✓ | ✓ |
 | Config file | TOML (`pyproject.toml`) | JSON (`.diff-cover-js.json`) |
+| `--ignore-staged` / `--ignore-unstaged` / `--include-untracked` | ✓ | ✓ |
+| Line numbers when committed, staged and unstaged changes touch the same file | Can drift: each diff's line numbers are combined without shifting | Always match the file on disk (see [Uncommitted changes](#uncommitted-changes)) |
 | Code snippets in HTML | ✓ (via Pygments) | planned |
 | diff-quality (lint violations) | ✓ | planned |
 | Cobertura XML input | ✓ | not planned (lcov only) |
 | Runtime | Python | Node.js |
+
+## Development
+
+```bash
+npm install
+npm run build      # compile to dist/
+npm test           # vitest
+npm run typecheck  # type-check src/ and test/
+```
+
+The package runs on Node.js >= 16, but the test tooling (vitest/vite) needs Node.js ^20.19 or >= 22.12.
 
 ## License
 

@@ -1,6 +1,6 @@
 import { FileDiff } from './git-diff';
-import { LcovFileCoverage } from './lcov-parser';
-import { normalizePath } from './path-utils';
+import { LcovFileCoverage, mergeLcovCoverage } from './lcov-parser';
+import { toRepoRelativePath } from './path-utils';
 
 export interface FileStats {
   filePath: string;
@@ -106,9 +106,18 @@ export function calculateDiffCoverage (
   // Pre-compile once — not per file/pattern pair
   const compiledExcludes = rawPatterns.map(globToRegex);
 
+  // Different raw paths (e.g. "/abs/repo/src/a.ts" and "src/a.ts") can normalize to the
+  // same file. Merge them instead of letting the last one win. Each entry is copied before
+  // merging so the caller's lcovData is never mutated.
   const normalizedLcov = new Map<string, LcovFileCoverage>();
   for (const [filePath, coverage] of lcovData) {
-    normalizedLcov.set(normalizePath(filePath), coverage);
+    const key = toRepoRelativePath(filePath);
+    const existing = normalizedLcov.get(key);
+    if (existing === undefined) {
+      normalizedLcov.set(key, { filePath: coverage.filePath, lines: new Map(coverage.lines) });
+    } else {
+      mergeLcovCoverage(existing, coverage);
+    }
   }
 
   const files: FileStats[] = [];

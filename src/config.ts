@@ -11,6 +11,12 @@ export interface DiffCoverConfig {
   diffRangeNotation?: '...' | '..';
   format?: string;
   noDefaultExcludes?: boolean;
+  /** Exclude staged changes (same as --ignore-staged) */
+  ignoreStaged?: boolean;
+  /** Exclude unstaged changes (same as --ignore-unstaged) */
+  ignoreUnstaged?: boolean;
+  /** Count untracked files, every line as added (same as --include-untracked) */
+  includeUntracked?: boolean;
 }
 
 const CONFIG_FILE_NAMES = [

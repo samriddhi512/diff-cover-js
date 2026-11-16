@@ -1,6 +1,6 @@
 {
   "name": "diff-cover-js",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Diff-aware test coverage checker — JS/TS equivalent of Python diff-cover. Reports coverage only for lines you changed, not the whole file.",
   "license": "MIT",
   "author": {
@@ -37,6 +37,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.test.json",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
@@ -46,7 +48,8 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "ts-node": "^10.9.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^3.2.7"
   },
   "engines": {
     "node": ">=16.0.0"

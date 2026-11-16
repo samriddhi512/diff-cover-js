@@ -36,6 +36,9 @@ program
   .option('--exclude <patterns...>', 'Additional glob patterns to exclude (test files excluded by default)')
   .option('--no-default-excludes', 'Do not apply the built-in test/spec/.d.ts file exclusions')
   .option('--strict', 'Count files missing from coverage data as 0% covered')
+  .option('--ignore-staged', 'Ignore staged changes')
+  .option('--ignore-unstaged', 'Ignore unstaged changes')
+  .option('--include-untracked', 'Include untracked files (every line counts as added)')
   // Boolean flags (.option without <value>) are undefined when absent, true when present — safe to use directly.
   .option('-q, --quiet', 'Suppress the console report — only print errors and the final percentage')
   .option('-c, --config-file <path>', 'Path to .diff-cover-js.json config file (auto-discovered if omitted)')
@@ -76,6 +79,9 @@ program
     const formatRaw     = cliOptions.format         ?? fileConfig.format ?? '';
     const quiet             = cliOptions.quiet   === true || fileConfig.quiet   === true;
     const strict            = cliOptions.strict  === true || fileConfig.strict  === true;
+    const ignoreStaged      = cliOptions.ignoreStaged     === true || fileConfig.ignoreStaged     === true;
+    const ignoreUnstaged    = cliOptions.ignoreUnstaged   === true || fileConfig.ignoreUnstaged   === true;
+    const includeUntracked  = cliOptions.includeUntracked === true || fileConfig.includeUntracked === true;
     // Commander --no-default-excludes sets cliOptions.defaultExcludes = false when the flag is passed,
     // true when absent. So false means the user explicitly opted out of default exclusions.
     const noDefaultExcludes = cliOptions.defaultExcludes === false || fileConfig.noDefaultExcludes === true;
@@ -99,7 +105,7 @@ program
     // ── Get git diff ───────────────────────────────────────────────────────
     let diffs;
     try {
-      diffs = getGitDiff(compareRef, rangeNotation);
+      diffs = getGitDiff(compareRef, rangeNotation, { ignoreStaged, ignoreUnstaged, includeUntracked });
     } catch (err: unknown) {
       console.error(`❌ ${err instanceof Error ? err.message : String(err)}`);
       process.exit(1);
