@@ -15,7 +15,7 @@ export {
 export { loadConfig } from './config';
 
 export type { FileDiff, RangeNotation, GitDiffOptions } from './git-diff';
-export type { LcovFileCoverage } from './lcov-parser';
+export type { LcovFileCoverage, LineBranches } from './lcov-parser';
 export type { FileStats, DiffCoverageResult, CalculatorOptions } from './calculator';
 export type { ReportDict, SrcStats } from './report-generator';
 export type { DiffCoverConfig } from './config';

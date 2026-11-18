@@ -12,6 +12,11 @@ export interface SrcStats {
   coverableLines: number;
   /** True when the file was in the diff but had no lcov entry (strict mode) */
   missingFromLcov: boolean;
+  /** Branches on changed lines (from lcov BRDA records) */
+  coverableBranches: number;
+  coveredBranches: number;
+  /** Integer percent of changed branches covered; null when the changed lines have no branches */
+  percentBranchesCovered: number | null;
 }
 
 export interface ReportDict {
@@ -21,6 +26,10 @@ export interface ReportDict {
   totalNumViolations: number;
   totalPercentCovered: number;
   numChangedLines: number;
+  totalNumBranches: number;
+  totalNumCoveredBranches: number;
+  /** Integer percent of changed branches covered; null when there are none */
+  totalPercentBranchesCovered: number | null;
 }
 
 /**
@@ -53,15 +62,20 @@ export function buildReportDict (result: DiffCoverageResult, diffName: string): 
 
   for (const file of result.files) {
     // Include strict-mode files (inLcov: false) so JSON/HTML/Markdown are
-    // consistent with the console report — both show these files at 0%.
+    // consistent with the console report — both show these files at 0%, or as
+    // having nothing to cover when only blank/comment lines changed.
+    // null when no changed line is coverable, like diff-cover's percent_covered().
     srcStats[file.filePath] = {
-      percentCovered: file.inLcov
-        ? (file.coverableAddedLines === 0 ? null : file.coveragePercent)
-        : 0,
+      percentCovered: file.coverableAddedLines === 0
+        ? null
+        : (file.inLcov ? file.coveragePercent : 0),
       violationLines: file.uncoveredLineNumbers,
       coveredLines: file.coveredLineNumbers,
       coverableLines: file.coverableAddedLines,
       missingFromLcov: !file.inLcov,
+      coverableBranches: file.coverableBranches,
+      coveredBranches: file.coveredBranches,
+      percentBranchesCovered: file.branchPercent,
     };
   }
 
@@ -72,6 +86,9 @@ export function buildReportDict (result: DiffCoverageResult, diffName: string): 
     totalNumViolations: result.totalCoverable - result.totalCovered,
     totalPercentCovered: result.overallPercent,
     numChangedLines: result.totalAdded,
+    totalNumBranches: result.totalBranches,
+    totalNumCoveredBranches: result.totalCoveredBranches,
+    totalPercentBranchesCovered: result.overallBranchPercent,
   };
 }
 
@@ -89,7 +106,9 @@ export function generateMarkdownReport (result: DiffCoverageResult, diffName: st
 
   const fileLines = entries.map(([srcPath, stats]) => {
     if (stats.missingFromLcov) {
-      return `- ${srcPath} (0%): Not in coverage data`;
+      return stats.percentCovered === null
+        ? `- ${srcPath} (100%): Not in coverage data, no code lines changed`
+        : `- ${srcPath} (0%): Not in coverage data`;
     }
     if (stats.percentCovered === null || stats.percentCovered === 100) {
       return `- ${srcPath} (100%)`;
@@ -139,7 +158,10 @@ export function generateHtmlReport (
     let pct: string;
     let pctColor: string;
 
-    if (stats.missingFromLcov) {
+    if (stats.missingFromLcov && stats.percentCovered === null) {
+      pct = 'N/A (not collected)';
+      pctColor = '#888';
+    } else if (stats.missingFromLcov) {
       pct = '0% (not collected)';
       pctColor = '#c0392b';
     } else if (stats.percentCovered === null) {
