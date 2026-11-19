@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-19
+
+### Removed
+
+- The package no longer includes source maps (`dist/*.js.map`, `dist/*.d.ts.map`). They pointed to `src/*.ts`, which was never published. With `node --enable-source-maps`, stack traces named `.ts` files that weren't on disk, and webpack's `source-map-loader` warned that it couldn't load them. Stack traces now point to `dist/*.js`. The unpacked package is about a third smaller: 21 files instead of 39.
+
+### Changed
+
+- `npm run build` deletes `dist/` before compiling, so files left over from earlier builds can no longer be published.
+
 ## [0.3.0] - 2026-11-18
 
 ### Breaking (TypeScript types)
@@ -56,7 +66,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Console, HTML, JSON and Markdown reports (`--format`).
 - `.diff-cover-js.json` config file.
 
-[Unreleased]: https://github.com/samriddhi512/diff-cover-js/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/samriddhi512/diff-cover-js/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/samriddhi512/diff-cover-js/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/samriddhi512/diff-cover-js/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/samriddhi512/diff-cover-js/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/samriddhi512/diff-cover-js/releases/tag/v0.1.0

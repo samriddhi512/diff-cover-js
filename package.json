@@ -1,6 +1,6 @@
 {
   "name": "diff-cover-js",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Diff coverage for JavaScript/TypeScript: line and branch coverage on changed lines only (patch coverage). Node.js alternative to Python diff-cover.",
   "license": "MIT",
   "author": {
@@ -46,7 +46,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc",
     "dev": "ts-node src/cli.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.test.json",
