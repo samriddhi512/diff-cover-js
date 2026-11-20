@@ -8,7 +8,7 @@
 
 A Node.js alternative to the Python [diff-cover](https://github.com/Bachmann1234/diff_cover): the same approach and similar flags, no Python required. See [Differences from Python diff-cover](#differences-from-python-diff-cover).
 
-Release notes: [CHANGELOG.md](CHANGELOG.md).
+Guides and docs: **[samriddhi512.github.io/diff-cover-js](https://samriddhi512.github.io/diff-cover-js/)**: [Jest](https://samriddhi512.github.io/diff-cover-js/jest/) · [Vitest](https://samriddhi512.github.io/diff-cover-js/vitest/) · [GitHub Actions](https://samriddhi512.github.io/diff-cover-js/github-actions/) · [comparison with other diff coverage tools](https://samriddhi512.github.io/diff-cover-js/comparison/). Release notes: [CHANGELOG.md](CHANGELOG.md).
 
 ## Contents
 

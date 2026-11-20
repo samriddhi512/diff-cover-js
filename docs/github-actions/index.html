@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enforce coverage on changed lines in GitHub Actions pull requests | diff-cover-js</title>
+<meta name="description" content="A complete GitHub Actions workflow that fails a pull request when test coverage on its changed lines is below a threshold, and posts a diff coverage report to the job summary. Works with Jest and Vitest, no Codecov needed.">
+<link rel="canonical" href="https://samriddhi512.github.io/diff-cover-js/github-actions/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b6b4f'/%3E%3Cpath d='M9 16h14M16 9v14' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Enforce coverage on changed lines in GitHub Actions pull requests">
+<meta property="og:description" content="Fail a pull request when its changed lines aren't covered by tests, with a report in the job summary.">
+<meta property="og:url" content="https://samriddhi512.github.io/diff-cover-js/github-actions/">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/diff-cover-js/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Enforce coverage on changed lines in GitHub Actions pull requests",
+  "url": "https://samriddhi512.github.io/diff-cover-js/github-actions/",
+  "dateModified": "2026-11-20",
+  "author": { "@type": "Person", "name": "Samriddhi", "url": "https://github.com/samriddhi512" },
+  "about": { "@id": "https://samriddhi512.github.io/diff-cover-js/#software" }
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/diff-cover-js/">diff-cover-js</a>
+    <nav aria-label="Main">
+      <a href="/diff-cover-js/jest/">Jest</a>
+      <a href="/diff-cover-js/vitest/">Vitest</a>
+      <a href="/diff-cover-js/github-actions/" aria-current="page">GitHub Actions</a>
+      <a href="/diff-cover-js/comparison/">Compare tools</a>
+      <a href="https://github.com/samriddhi512/diff-cover-js">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>Enforce coverage on changed lines in GitHub Actions</h1>
+    <p class="lead">This workflow fails a pull request when <strong>the lines it changes</strong> aren't covered by tests, and writes a coverage report to the job summary. It runs entirely in your own CI with <strong>diff-cover-js</strong>: no coverage upload, no third-party service, no token.</p>
+
+    <h2 id="workflow">The workflow</h2>
+    <p>Save this as <code>.github/workflows/diff-coverage.yml</code>. It assumes Jest; for Vitest, swap the test command (see below).</p>
+<pre><code>name: Diff coverage
+
+on:
+  pull_request:
+
+jobs:
+  diff-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history, needed to find the merge base
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run tests with coverage
+        run: npx jest --coverage --coverageReporters=lcov
+
+      - name: Check coverage on changed lines
+        run: >
+          npx diff-cover-js
+          --lcov coverage/lcov.info
+          --compare-branch origin/${{ github.base_ref }}
+          --fail-under 80
+          --format markdown:diff-cover.md
+
+      - name: Add report to job summary
+        if: always() &amp;&amp; hashFiles('diff-cover.md') != ''
+        run: cat diff-cover.md &gt;&gt; "$GITHUB_STEP_SUMMARY"</code></pre>
+    <p>If <code>diff-cover-js</code> isn't in your <code>devDependencies</code>, <code>npx</code> downloads it on each run. Adding it with <code>npm install --save-dev diff-cover-js</code> pins the version in your lockfile.</p>
+
+    <h2 id="how">How it works</h2>
+    <ul>
+      <li><strong><code>fetch-depth: 0</code></strong> fetches the full history. diff-cover-js runs <code>git merge-base</code> between the base branch and <code>HEAD</code>, which fails on the default shallow clone.</li>
+      <li><strong><code>origin/${{ github.base_ref }}</code></strong> is the pull request's target branch, so the same file works for PRs into <code>main</code>, <code>develop</code> or a release branch.</li>
+      <li><strong><code>--fail-under 80</code></strong> makes the step exit with code 1 when less than 80% of the changed lines are covered, which fails the check on the pull request.</li>
+      <li><strong><code>--format markdown:diff-cover.md</code></strong> writes the report before the threshold check, so the summary step can show it even when the check fails. <code>if: always()</code> runs that step after a failure.</li>
+    </ul>
+    <div class="callout">
+      <p>To block merging, make the <code>diff-coverage</code> job a required status check in the branch protection rules (or ruleset) for your base branch.</p>
+    </div>
+
+    <h2 id="vitest">Using Vitest</h2>
+    <p>Install <code>@vitest/coverage-v8</code> (or <code>@vitest/coverage-istanbul</code>) and change the test step:</p>
+<pre><code>      - name: Run tests with coverage
+        run: npx vitest run --coverage --coverage.reporter=lcov</code></pre>
+    <p>More detail in the <a href="/diff-cover-js/vitest/">Vitest guide</a>.</p>
+
+    <h2 id="comment">Post the report as a PR comment</h2>
+    <p>The job summary needs no permissions. To also comment on the pull request, give the job write access and use the GitHub CLI that's preinstalled on GitHub-hosted runners:</p>
+<pre><code>jobs:
+  diff-coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # ... same steps as above ...
+
+      - name: Comment on the pull request
+        if: always() &amp;&amp; hashFiles('diff-cover.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment ${{ github.event.pull_request.number }} --body-file diff-cover.md</code></pre>
+    <p>This adds a new comment on every push. Pull requests from forks get a read-only token, so the comment step fails there; the job summary still works.</p>
+
+    <h2 id="artifacts">Keep the HTML and JSON reports</h2>
+<pre><code>      - name: Check coverage on changed lines
+        run: >
+          npx diff-cover-js
+          --lcov coverage/lcov.info
+          --compare-branch origin/${{ github.base_ref }}
+          --fail-under 80
+          --format markdown:diff-cover.md,html:reports/diff-cover.html,json:reports/diff-cover.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: diff-coverage-report
+          path: reports/</code></pre>
+
+    <h2 id="troubleshooting">Troubleshooting</h2>
+    <h3>"No merge base found between … and HEAD"</h3>
+    <p>The checkout is shallow, so the common ancestor of your branch and the base branch wasn't fetched. Set <code>fetch-depth: 0</code> on <code>actions/checkout</code>, or run <code>git fetch --unshallow</code> before diff-cover-js.</p>
+    <h3>Coverage looks too high, or a changed file is missing</h3>
+    <p>Changed files with no entry in <code>lcov.info</code> are left out of the total. Check that your test runner's coverage includes the file (for example Jest's <code>collectCoverageFrom</code> or Vitest's <code>coverage.include</code>) and that its <code>SF:</code> path matches the path in the repository; in a monorepo, see <a href="/diff-cover-js/vitest/#workspaces">monorepos</a>. To count such files as uncovered instead, add <code>--strict</code>. It applies to every changed file, including JSON and config files, so pair it with <code>--exclude '**/*.json' '**/*.config.*'</code>.</p>
+    <h3>Generated files are counted</h3>
+    <p>By default staged and unstaged changes count too. If a CI step rewrites tracked files before diff-cover-js runs (code generation, version stamping), exclude them with <code>--exclude 'src/generated/**'</code> or pass <code>--ignore-staged --ignore-unstaged</code> to count committed changes only.</p>
+
+    <h2 id="next">Next</h2>
+    <ul>
+      <li><a href="/diff-cover-js/jest/">Jest guide</a> · <a href="/diff-cover-js/vitest/">Vitest guide</a></li>
+      <li><a href="/diff-cover-js/comparison/">Compare diff coverage tools</a></li>
+      <li><a href="https://github.com/samriddhi512/diff-cover-js#cli-flags">All CLI flags</a></li>
+    </ul>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    diff-cover-js is MIT licensed ·
+    <a href="https://www.npmjs.com/package/diff-cover-js">npm</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js">GitHub</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js/blob/main/CHANGELOG.md">Changelog</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js/issues">Issues</a>
+  </div>
+</footer>
+</body>
+</html>

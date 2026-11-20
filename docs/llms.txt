@@ -1,0 +1,22 @@
+# diff-cover-js
+
+> diff-cover-js is a Node.js CLI and library that reports test coverage only on the lines changed in a git diff or pull request (diff coverage, also called patch coverage). It reads lcov reports from Jest, Vitest, nyc/Istanbul and c8, reports line and branch coverage for the changed lines, and can fail CI with --fail-under. It is a Node.js alternative to Python diff-cover and is a different project from the "diff-cover" npm package.
+
+Install: `npm install --save-dev diff-cover-js`
+Run: `npx diff-cover-js --lcov coverage/lcov.info --compare-branch origin/main --fail-under 80`
+Requirements: Node.js >= 16, an lcov.info file, a git repository with the base branch available locally.
+License: MIT
+
+## Docs
+
+- [Overview and FAQ](https://samriddhi512.github.io/diff-cover-js/): what diff coverage is, quick start, features
+- [Jest guide](https://samriddhi512.github.io/diff-cover-js/jest/): coverage on changed lines with Jest
+- [Vitest guide](https://samriddhi512.github.io/diff-cover-js/vitest/): coverage on changed lines with Vitest (v8 or Istanbul provider)
+- [GitHub Actions guide](https://samriddhi512.github.io/diff-cover-js/github-actions/): fail pull requests below a diff coverage threshold, report in the job summary
+- [Comparison](https://samriddhi512.github.io/diff-cover-js/comparison/): diff-cover-js vs diff-cover (npm) vs @connectis/diff-test-coverage vs coverage-diff vs Python diff-cover
+
+## Reference
+
+- [README with all CLI flags](https://github.com/samriddhi512/diff-cover-js#readme)
+- [npm package](https://www.npmjs.com/package/diff-cover-js)
+- [Changelog](https://github.com/samriddhi512/diff-cover-js/blob/main/CHANGELOG.md)

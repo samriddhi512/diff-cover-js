@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diff coverage tools for JavaScript compared: diff-cover-js, diff-cover, diff-test-coverage | diff-cover-js</title>
+<meta name="description" content="A side-by-side comparison of diff coverage (patch coverage) tools for JavaScript and TypeScript: diff-cover-js, the diff-cover npm package, @connectis/diff-test-coverage, coverage-diff and Python diff-cover.">
+<link rel="canonical" href="https://samriddhi512.github.io/diff-cover-js/comparison/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b6b4f'/%3E%3Cpath d='M9 16h14M16 9v14' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Diff coverage tools for JavaScript compared">
+<meta property="og:description" content="diff-cover-js, diff-cover (npm), @connectis/diff-test-coverage, coverage-diff and Python diff-cover, side by side.">
+<meta property="og:url" content="https://samriddhi512.github.io/diff-cover-js/comparison/">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/diff-cover-js/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Diff coverage tools for JavaScript compared",
+  "url": "https://samriddhi512.github.io/diff-cover-js/comparison/",
+  "dateModified": "2026-11-20",
+  "author": { "@type": "Person", "name": "Samriddhi", "url": "https://github.com/samriddhi512" },
+  "about": { "@id": "https://samriddhi512.github.io/diff-cover-js/#software" }
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/diff-cover-js/">diff-cover-js</a>
+    <nav aria-label="Main">
+      <a href="/diff-cover-js/jest/">Jest</a>
+      <a href="/diff-cover-js/vitest/">Vitest</a>
+      <a href="/diff-cover-js/github-actions/">GitHub Actions</a>
+      <a href="/diff-cover-js/comparison/" aria-current="page">Compare tools</a>
+      <a href="https://github.com/samriddhi512/diff-cover-js">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>Diff coverage tools for JavaScript compared</h1>
+    <p class="lead">Several tools report test coverage only on the lines a change touches. This page compares the ones JavaScript and TypeScript projects usually pick: <strong>diff-cover-js</strong>, the <strong>diff-cover</strong> npm package, <strong>@connectis/diff-test-coverage</strong>, <strong>coverage-diff</strong>, and the original <strong>Python diff-cover</strong>.</p>
+
+    <div class="callout">
+      <p>This page is written by the author of diff-cover-js. Details for the other tools come from their own READMEs, checked on 20 November 2026; "not documented" means the README doesn't mention it, not that the feature is missing. Corrections are welcome in <a href="https://github.com/samriddhi512/diff-cover-js/issues">GitHub issues</a>.</p>
+    </div>
+
+    <h2 id="short-answer">Short answer</h2>
+    <ul>
+      <li><strong>Jest, Vitest, nyc or c8 with lcov, and you want branch coverage on changed lines plus HTML, JSON and Markdown reports:</strong> diff-cover-js.</li>
+      <li><strong>You need Cobertura, Clover or JaCoCo reports, or lint checks on changed lines (diff-quality), in Node:</strong> the <code>diff-cover</code> npm package.</li>
+      <li><strong>You need separate line, branch and function thresholds, or Mercurial:</strong> @connectis/diff-test-coverage.</li>
+      <li><strong>You want to compare whole-file coverage between the base and head branches, not individual lines:</strong> coverage-diff.</li>
+      <li><strong>Python is already in your CI, or you use many report formats and languages:</strong> Python diff-cover, the original tool.</li>
+    </ul>
+
+    <h2 id="table">Side by side</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col"></th>
+            <th scope="col">diff-cover-js</th>
+            <th scope="col">diff-cover (npm)</th>
+            <th scope="col">@connectis/<wbr>diff-test-coverage</th>
+            <th scope="col">Python diff-cover</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Runs on</th>
+            <td>Node.js ≥ 16</td>
+            <td>Node.js or Bun</td>
+            <td>Node.js</td>
+            <td>Python</td>
+          </tr>
+          <tr>
+            <th scope="row">Coverage formats</th>
+            <td>lcov</td>
+            <td>lcov, Cobertura, Clover, JaCoCo, generic XML</td>
+            <td>lcov, Cobertura, Clover, JaCoCo, golang-cover</td>
+            <td>lcov, Cobertura, Clover, JaCoCo</td>
+          </tr>
+          <tr>
+            <th scope="row">How it gets the diff</th>
+            <td>Runs git</td>
+            <td>Runs git</td>
+            <td>Reads a unified diff piped in (git, Mercurial, others)</td>
+            <td>Runs git</td>
+          </tr>
+          <tr>
+            <th scope="row">Staged, unstaged, untracked changes</th>
+            <td>Counted by default; flags to ignore staged/unstaged or include untracked</td>
+            <td>Flags to ignore staged/unstaged or include untracked</td>
+            <td>Whatever diff you pipe in</td>
+            <td>Counted by default; flags to ignore staged/unstaged or include untracked</td>
+          </tr>
+          <tr>
+            <th scope="row">Fail threshold</th>
+            <td>Line coverage (<code>--fail-under</code>)</td>
+            <td><code>--fail-under</code></td>
+            <td>Separate line, branch and function thresholds (each 80% by default)</td>
+            <td><code>--fail-under</code></td>
+          </tr>
+          <tr>
+            <th scope="row">Branch coverage on changed lines</th>
+            <td>Separate figure in console and JSON, with lines that have untaken branches</td>
+            <td class="muted">Not documented</td>
+            <td>Yes, with its own threshold</td>
+            <td>For Cobertura (<code>--branch-coverage</code>); lcov branch data only adjusts line coverage</td>
+          </tr>
+          <tr>
+            <th scope="row">Report formats</th>
+            <td>Console, HTML, JSON, Markdown</td>
+            <td>Console, HTML, JSON</td>
+            <td>Console</td>
+            <td>Console, HTML, JSON, Markdown</td>
+          </tr>
+          <tr>
+            <th scope="row">Config file</th>
+            <td><code>.diff-cover-js.json</code></td>
+            <td>Auto-detects Vite/Vitest config to find the report</td>
+            <td class="muted">Not documented</td>
+            <td><code>pyproject.toml</code></td>
+          </tr>
+          <tr>
+            <th scope="row">Lint violations on changed lines</th>
+            <td>No (planned)</td>
+            <td>Yes (<code>diff-quality</code>: ESLint and others)</td>
+            <td>No</td>
+            <td>Yes (<code>diff-quality</code>)</td>
+          </tr>
+          <tr>
+            <th scope="row">Merges repeated lcov entries for one file</th>
+            <td>Yes, adds hit counts (Jest projects, shards, mixed absolute/relative paths)</td>
+            <td class="muted">Not documented</td>
+            <td>Merges multiple report files</td>
+            <td class="muted">Not documented</td>
+          </tr>
+          <tr>
+            <th scope="row">Programmatic API</th>
+            <td>Yes, with TypeScript types</td>
+            <td class="muted">Not documented</td>
+            <td class="muted">Not documented</td>
+            <td>Python only</td>
+          </tr>
+          <tr>
+            <th scope="row">Runtime dependencies</th>
+            <td>2</td>
+            <td>13</td>
+            <td>10</td>
+            <td>Python packages</td>
+          </tr>
+          <tr>
+            <th scope="row">Latest release</th>
+            <td>0.3.1, Nov 2026</td>
+            <td>2.0.5, Jan 2026</td>
+            <td>1.5.3, Apr 2022</td>
+            <td>Maintained since 2013</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="diff-cover-js">diff-cover-js</h2>
+    <p>A Node.js tool built for the lcov reports the JavaScript ecosystem already produces. It reports line and branch coverage for the lines a branch adds, skips test files and type declarations by default, and writes Markdown for pull requests and JSON for bots. Line numbers always refer to the file as it is on disk, even when committed, staged and unstaged changes touch the same file. It reads lcov only; Cobertura XML isn't planned.</p>
+    <p><a href="/diff-cover-js/">Overview</a> · <a href="/diff-cover-js/jest/">Jest guide</a> · <a href="/diff-cover-js/vitest/">Vitest guide</a> · <a href="https://www.npmjs.com/package/diff-cover-js">npm</a></p>
+
+    <h2 id="diff-cover-npm">diff-cover (npm)</h2>
+    <p>A TypeScript port of Python diff-cover, published on npm as <code>diff-cover</code>. It's a different project from diff-cover-js, despite the similar name. Its strengths are the range of input formats, Vite/Vitest config detection, and a <code>diff-quality</code> command for lint results on changed lines.</p>
+    <p><a href="https://www.npmjs.com/package/diff-cover">npm</a> · <a href="https://github.com/jamesishandsome/diff_cover_ts">GitHub</a></p>
+
+    <h2 id="diff-test-coverage">@connectis/diff-test-coverage</h2>
+    <p>A Node.js CLI that reads a diff from standard input, so it works with git, Mercurial or anything that writes a unified diff. It supports many report formats and enforces line, branch and function coverage thresholds on the diff separately. It writes console output only.</p>
+<pre><code>git diff origin/main...HEAD | npx @connectis/diff-test-coverage -c coverage/lcov.info -t lcov --</code></pre>
+    <p><a href="https://www.npmjs.com/package/@connectis/diff-test-coverage">npm</a> · <a href="https://github.com/Connected-Information-systems/diff-test-coverage">GitHub</a></p>
+
+    <h2 id="coverage-diff">coverage-diff</h2>
+    <p>A different kind of tool: it compares two Istanbul <code>coverage-summary.json</code> files (base and head) and reports how coverage percentages changed per file. It works at the file level, so it can catch coverage regressions but can't tell you which changed lines are untested.</p>
+    <p><a href="https://www.npmjs.com/package/coverage-diff">npm</a></p>
+
+    <h2 id="python">Python diff-cover</h2>
+    <p>The original tool, started at edX in 2013 and still the most complete: many report formats, <code>diff-quality</code> for linters, and HTML reports with code snippets. It parses lcov, so it works for JavaScript projects too, but CI needs Python (for example <code>pipx install diff-cover</code>). diff-cover-js follows its approach and flag names; the <a href="https://github.com/samriddhi512/diff-cover-js#differences-from-python-diff-cover">README lists the differences</a>.</p>
+    <p><a href="https://github.com/Bachmann1234/diff_cover">GitHub</a> · <a href="https://pypi.org/project/diff-cover/">PyPI</a></p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    diff-cover-js is MIT licensed ·
+    <a href="https://www.npmjs.com/package/diff-cover-js">npm</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js">GitHub</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js/blob/main/CHANGELOG.md">Changelog</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js/issues">Issues</a>
+  </div>
+</footer>
+</body>
+</html>

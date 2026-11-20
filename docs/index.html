@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>diff-cover-js: diff coverage for JavaScript and TypeScript</title>
+<meta name="description" content="diff-cover-js is a Node.js CLI that reports test coverage only on the lines changed in a git diff or pull request (diff coverage / patch coverage). Works with Jest, Vitest, nyc and c8 lcov reports. No Python required.">
+<link rel="canonical" href="https://samriddhi512.github.io/diff-cover-js/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b6b4f'/%3E%3Cpath d='M9 16h14M16 9v14' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="diff-cover-js: diff coverage for JavaScript and TypeScript">
+<meta property="og:description" content="Report test coverage only on the lines you changed. Line and branch coverage on changed lines for Jest, Vitest, nyc and c8. No Python required.">
+<meta property="og:url" content="https://samriddhi512.github.io/diff-cover-js/">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/diff-cover-js/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://samriddhi512.github.io/diff-cover-js/#website",
+      "url": "https://samriddhi512.github.io/diff-cover-js/",
+      "name": "diff-cover-js"
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "@id": "https://samriddhi512.github.io/diff-cover-js/#software",
+      "name": "diff-cover-js",
+      "description": "Node.js CLI and library that reports line and branch test coverage only on the lines changed in a git diff (diff coverage / patch coverage), from lcov reports produced by Jest, Vitest, nyc or c8.",
+      "url": "https://samriddhi512.github.io/diff-cover-js/",
+      "codeRepository": "https://github.com/samriddhi512/diff-cover-js",
+      "programmingLanguage": ["TypeScript", "JavaScript"],
+      "runtimePlatform": "Node.js",
+      "license": "https://opensource.org/licenses/MIT",
+      "author": { "@type": "Person", "name": "Samriddhi", "url": "https://github.com/samriddhi512" },
+      "sameAs": [
+        "https://www.npmjs.com/package/diff-cover-js",
+        "https://github.com/samriddhi512/diff-cover-js"
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/diff-cover-js/">diff-cover-js</a>
+    <nav aria-label="Main">
+      <a href="/diff-cover-js/jest/">Jest</a>
+      <a href="/diff-cover-js/vitest/">Vitest</a>
+      <a href="/diff-cover-js/github-actions/">GitHub Actions</a>
+      <a href="/diff-cover-js/comparison/">Compare tools</a>
+      <a href="https://github.com/samriddhi512/diff-cover-js">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>diff-cover-js: diff coverage for JavaScript and TypeScript</h1>
+    <p class="lead"><strong>diff-cover-js</strong> checks test coverage <strong>only on the lines you changed</strong> in a pull request or git diff, not on the whole file. It reports line and branch coverage for those lines and can fail CI below a threshold. It reads the <code>lcov.info</code> that Jest, Vitest, nyc and c8 already write, and runs on Node.js. No Python needed.</p>
+
+    <div class="cta">
+      <a class="button primary" href="#quick-start">Quick start</a>
+      <a class="button" href="https://www.npmjs.com/package/diff-cover-js">npm</a>
+      <a class="button" href="https://github.com/samriddhi512/diff-cover-js">GitHub</a>
+    </div>
+
+    <h2 id="the-problem">Why diff coverage?</h2>
+    <p>Normal coverage tools measure whole files. Add 10 lines to a 500-line legacy file, cover all 10, and the file is still at a few percent. Set a global threshold and every pull request is judged on code nobody touched.</p>
+    <p>Diff coverage (also called <strong>patch coverage</strong>, the term Codecov uses) asks a narrower question: <em>of the lines this change adds, how many do the tests run?</em> In the example above, diff-cover-js reports 100%, because all 10 changed lines are covered. That makes a threshold like 80% fair on old codebases and strict on new code.</p>
+
+    <h2 id="quick-start">Quick start</h2>
+    <p>Install it as a dev dependency:</p>
+<pre><code>npm install --save-dev diff-cover-js</code></pre>
+    <p>Run your tests with an lcov reporter, then compare against your base branch:</p>
+<pre><code># Jest
+npx jest --coverage --coverageReporters=lcov
+# or Vitest (needs @vitest/coverage-v8 or @vitest/coverage-istanbul)
+npx vitest run --coverage --coverage.reporter=lcov
+
+npx diff-cover-js --lcov coverage/lcov.info --compare-branch origin/main --fail-under 80</code></pre>
+    <p>The command exits with code 1 when coverage on the changed lines is below 80%. Requirements: Node.js 16 or later, an <code>lcov.info</code> file, and a git repository with the base branch available locally.</p>
+
+    <h3>Example output</h3>
+<pre><code>────────────────────────────────────────────────────────────────
+  diff-cover-js  ·  Diff Coverage Report
+
+  ✓  src/utils/foo.ts
+       100% diff coverage  (5/5 coverable changed lines)
+
+  ✗  src/services/bar.ts
+        60% diff coverage  (3/5 coverable changed lines)
+       Missing lines: 42, 45
+        50% branch coverage  (1/2 branches on changed lines)
+       Partially covered branches: 44
+
+────────────────────────────────────────────────────────────────
+  Overall diff coverage: 80%
+  8/10 coverable changed lines covered
+  Overall branch coverage: 50%
+  1/2 branches on changed lines covered
+────────────────────────────────────────────────────────────────</code></pre>
+
+    <h2 id="features">Features</h2>
+    <ul class="features">
+      <li><strong>Line coverage on changed lines</strong>Blank lines, comments and type-only lines are skipped automatically.</li>
+      <li><strong>Branch coverage on changed lines</strong>Reads lcov <code>BRDA</code> records and lists lines with untaken branches.</li>
+      <li><strong>Fails CI on a threshold</strong><code>--fail-under 80</code> exits with code 1 below the limit.</li>
+      <li><strong>Console, HTML, JSON, Markdown</strong>Markdown for PR comments and job summaries, JSON for bots and dashboards.</li>
+      <li><strong>Uncommitted changes too</strong>Counts committed, staged and unstaged changes by default, so you can check before you push.</li>
+      <li><strong>Merges lcov blocks</strong>Jest multi-project, sharded or concatenated reports are merged by adding hit counts.</li>
+      <li><strong>Skips tests by default</strong><code>*.test.*</code>, <code>*.spec.*</code>, <code>__tests__</code>, <code>__mocks__</code> and <code>.d.ts</code> are excluded.</li>
+      <li><strong>CLI, config file or library</strong>Flags, a <code>.diff-cover-js.json</code> file, or a typed TypeScript API.</li>
+    </ul>
+
+    <h2 id="guides">Guides</h2>
+    <ul class="guides">
+      <li><a href="/diff-cover-js/jest/">Diff coverage with Jest</a><br><span class="muted">Check coverage on changed lines only, locally and in CI.</span></li>
+      <li><a href="/diff-cover-js/vitest/">Diff coverage with Vitest</a><br><span class="muted">Set up the v8 or Istanbul provider and check changed lines.</span></li>
+      <li><a href="/diff-cover-js/github-actions/">Enforce coverage on pull requests with GitHub Actions</a><br><span class="muted">A complete workflow, with a coverage report in the job summary.</span></li>
+      <li><a href="/diff-cover-js/comparison/">diff-cover-js vs diff-cover vs diff-test-coverage vs Python diff-cover</a><br><span class="muted">Which diff coverage tool fits your project.</span></li>
+    </ul>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>What is diff coverage?</h3>
+    <p>The percentage of lines added in a change that are executed by your tests. It ignores lines you didn't touch, so legacy code with low coverage doesn't block new work, and new code can't hide behind a high project-wide number.</p>
+
+    <h3>Is diff coverage the same as patch coverage?</h3>
+    <p>Yes. Codecov calls it patch coverage; the Python tool diff-cover and diff-cover-js call it diff coverage. diff-cover-js gives you the same number locally and in any CI, without uploading reports to a service.</p>
+
+    <h3>Is diff-cover-js the same as the <code>diff-cover</code> npm package?</h3>
+    <p>No. <code>diff-cover</code> on npm is a separate TypeScript port of Python diff-cover by another author. diff-cover-js is an independent tool focused on lcov reports from the JavaScript ecosystem. See the <a href="/diff-cover-js/comparison/">comparison</a> for the differences.</p>
+
+    <h3>Do I need Python?</h3>
+    <p>No. diff-cover-js is a Node.js port of the idea behind <a href="https://github.com/Bachmann1234/diff_cover">Python diff-cover</a>, with similar flags. It has two runtime dependencies and runs on Node.js 16 or later.</p>
+
+    <h3>Which test runners does it support?</h3>
+    <p>Anything that writes an lcov report: Jest, Vitest (v8 or Istanbul provider), nyc/Istanbul, and c8. Cobertura XML is not supported.</p>
+
+    <h3>Does it work outside GitHub?</h3>
+    <p>Yes. It only needs git, Node.js and the lcov file, so it runs the same in GitLab CI, Bitbucket Pipelines, Jenkins, CircleCI or on your laptop. In CI, fetch enough history to find the merge base (for example <code>fetch-depth: 0</code> on GitHub Actions).</p>
+
+    <h3>Can I use it from code?</h3>
+    <p>Yes. It exports <code>getGitDiff</code>, <code>parseLcov</code> and <code>calculateDiffCoverage</code> with TypeScript types:</p>
+<pre><code>import { getGitDiff, parseLcov, calculateDiffCoverage } from 'diff-cover-js';
+
+const diffs = getGitDiff('origin/main', '...');
+const result = calculateDiffCoverage(diffs, parseLcov('coverage/lcov.info'));
+console.log(result.overallPercent);       // line coverage on changed lines
+console.log(result.overallBranchPercent); // branch coverage on changed lines, or null</code></pre>
+    <p>The full flag reference is in the <a href="https://github.com/samriddhi512/diff-cover-js#readme">README</a>.</p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    diff-cover-js is MIT licensed ·
+    <a href="https://www.npmjs.com/package/diff-cover-js">npm</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js">GitHub</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js/blob/main/CHANGELOG.md">Changelog</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js/issues">Issues</a>
+  </div>
+</footer>
+</body>
+</html>

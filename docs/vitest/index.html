@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vitest diff coverage: coverage on changed lines only | diff-cover-js</title>
+<meta name="description" content="How to check Vitest test coverage only on the lines changed in a pull request or git diff (patch coverage), using the v8 or Istanbul provider's lcov report and diff-cover-js.">
+<link rel="canonical" href="https://samriddhi512.github.io/diff-cover-js/vitest/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b6b4f'/%3E%3Cpath d='M9 16h14M16 9v14' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Vitest diff coverage: coverage on changed lines only">
+<meta property="og:description" content="Check Vitest coverage only on the lines a pull request changes, with the v8 or Istanbul provider.">
+<meta property="og:url" content="https://samriddhi512.github.io/diff-cover-js/vitest/">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/diff-cover-js/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Vitest diff coverage: coverage on changed lines only",
+  "url": "https://samriddhi512.github.io/diff-cover-js/vitest/",
+  "dateModified": "2026-11-20",
+  "author": { "@type": "Person", "name": "Samriddhi", "url": "https://github.com/samriddhi512" },
+  "about": { "@id": "https://samriddhi512.github.io/diff-cover-js/#software" }
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/diff-cover-js/">diff-cover-js</a>
+    <nav aria-label="Main">
+      <a href="/diff-cover-js/jest/">Jest</a>
+      <a href="/diff-cover-js/vitest/" aria-current="page">Vitest</a>
+      <a href="/diff-cover-js/github-actions/">GitHub Actions</a>
+      <a href="/diff-cover-js/comparison/">Compare tools</a>
+      <a href="https://github.com/samriddhi512/diff-cover-js">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>Vitest diff coverage: coverage on changed lines only</h1>
+    <p class="lead">Vitest's coverage thresholds apply to whole files or the whole project. To check only the lines a pull request adds (patch coverage), have Vitest write an lcov report and run <strong>diff-cover-js</strong> against your base branch.</p>
+
+    <h2 id="install">1. Install a coverage provider and diff-cover-js</h2>
+    <p>Vitest needs a coverage provider. Either one works, since both can write lcov:</p>
+<pre><code># v8 (default provider, faster)
+npm install --save-dev @vitest/coverage-v8 diff-cover-js
+
+# or Istanbul
+npm install --save-dev @vitest/coverage-istanbul diff-cover-js</code></pre>
+    <p>Install the provider version that matches your <code>vitest</code> version.</p>
+
+    <h2 id="config">2. Add the lcov reporter</h2>
+<pre><code>// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    coverage: {
+      provider: 'v8',            // or 'istanbul'
+      reporter: ['lcov', 'text'],
+    },
+  },
+});</code></pre>
+    <p>Or set it from the command line:</p>
+<pre><code>npx vitest run --coverage --coverage.reporter=lcov</code></pre>
+    <p>Vitest writes <code>coverage/lcov.info</code>. If you set <code>coverage.reportsDirectory</code>, the file is in that folder instead.</p>
+
+    <h2 id="run">3. Check the changed lines</h2>
+<pre><code>npx diff-cover-js --lcov coverage/lcov.info --compare-branch origin/main --fail-under 80</code></pre>
+    <p>This exits with code 1 when fewer than 80% of the lines added since the merge base with <code>origin/main</code> are covered. The console report lists the uncovered line numbers per file.</p>
+
+    <h2 id="scripts">Package scripts</h2>
+<pre><code>{
+  "scripts": {
+    "test:coverage": "vitest run --coverage",
+    "coverage:diff": "diff-cover-js --lcov coverage/lcov.info --compare-branch origin/main --fail-under 80"
+  }
+}</code></pre>
+
+    <h2 id="config-file">Or use a config file</h2>
+    <p>Put the settings in <code>.diff-cover-js.json</code> at the project root and run <code>npx diff-cover-js</code> with no flags:</p>
+<pre><code>{
+  "lcov": "coverage/lcov.info",
+  "compareBranch": "origin/main",
+  "failUnder": 80,
+  "format": "markdown:reports/diff-cover.md"
+}</code></pre>
+
+    <h2 id="branches">Branch coverage</h2>
+    <p>Both Vitest providers include branch data in the lcov report. diff-cover-js reports branch coverage on the changed lines as a separate figure and lists the lines with untaken branches. <code>--fail-under</code> applies to line coverage only.</p>
+
+    <h2 id="workspaces">Monorepos and Vitest projects</h2>
+    <p>diff-cover-js matches the <code>SF:</code> paths in lcov to the paths in the git diff, which are relative to the repository root. Absolute <code>SF:</code> paths are converted to repository-relative ones; relative paths are read as already relative to the repository root.</p>
+    <p>That matters in a monorepo: when you run Vitest inside <code>packages/web</code>, it writes <code>SF:src/foo.ts</code>, but the diff calls the file <code>packages/web/src/foo.ts</code>. The paths don't match, and changed files with no matching coverage data are <strong>left out of the total</strong>, so the result can look better than it is. Two setups that work:</p>
+    <h3>Run Vitest once from the repository root</h3>
+    <p>List your packages under <code>test.projects</code> in a root config. Vitest then writes one lcov report with paths relative to the root:</p>
+<pre><code>// vitest.config.ts at the repository root
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    projects: ['packages/*'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['lcov', 'text'],
+    },
+  },
+});</code></pre>
+<pre><code>npx vitest run --coverage
+npx diff-cover-js --lcov coverage/lcov.info --compare-branch origin/main</code></pre>
+    <h3>Or prefix each package's paths, then combine</h3>
+    <p>If each package runs its own tests, add the package folder to its relative <code>SF:</code> paths while concatenating the reports. Absolute paths are left as they are:</p>
+<pre><code>mkdir -p coverage &amp;&amp; : &gt; coverage/lcov.info
+for d in packages/*/; do
+  sed "s#^SF:\([^/]\)#SF:${d}\1#" "${d}coverage/lcov.info" &gt;&gt; coverage/lcov.info
+done
+npx diff-cover-js --lcov coverage/lcov.info --compare-branch origin/main</code></pre>
+    <p>Blocks for the same file are merged by adding hit counts, so a file covered by several packages' tests is handled correctly.</p>
+    <h3>Catch missing files with <code>--strict</code></h3>
+    <p><code>--strict</code> counts every changed file that isn't in the lcov report as uncovered, so a path mismatch shows up as 0% instead of disappearing. It applies to <em>all</em> changed files, including <code>package.json</code>, lockfiles and config files, so exclude those:</p>
+<pre><code>npx diff-cover-js --lcov coverage/lcov.info --compare-branch origin/main --strict \
+  --exclude '**/*.json' '**/*.config.*'</code></pre>
+
+    <h2 id="next">Next</h2>
+    <ul>
+      <li><a href="/diff-cover-js/github-actions/">Run it on every pull request with GitHub Actions</a></li>
+      <li><a href="/diff-cover-js/jest/">Using Jest instead?</a></li>
+      <li><a href="/diff-cover-js/comparison/">How diff-cover-js compares to other diff coverage tools</a></li>
+    </ul>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    diff-cover-js is MIT licensed ·
+    <a href="https://www.npmjs.com/package/diff-cover-js">npm</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js">GitHub</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js/blob/main/CHANGELOG.md">Changelog</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js/issues">Issues</a>
+  </div>
+</footer>
+</body>
+</html>

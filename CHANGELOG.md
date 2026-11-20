@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- The npm "Homepage" link now points to the documentation site, https://samriddhi512.github.io/diff-cover-js/, which has guides for Jest, Vitest and GitHub Actions.
+
 ## [0.3.1] - 2026-11-19
 
 ### Removed

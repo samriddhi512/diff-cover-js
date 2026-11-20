@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jest diff coverage: test coverage on changed lines only | diff-cover-js</title>
+<meta name="description" content="How to check Jest test coverage only on the lines changed in a pull request or git diff, with diff-cover-js. Configure the lcov reporter, run locally, and fail CI below a threshold.">
+<link rel="canonical" href="https://samriddhi512.github.io/diff-cover-js/jest/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b6b4f'/%3E%3Cpath d='M9 16h14M16 9v14' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Jest diff coverage: test coverage on changed lines only">
+<meta property="og:description" content="Check Jest coverage only on the lines a pull request changes, and fail CI below a threshold.">
+<meta property="og:url" content="https://samriddhi512.github.io/diff-cover-js/jest/">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/diff-cover-js/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Jest diff coverage: test coverage on changed lines only",
+  "url": "https://samriddhi512.github.io/diff-cover-js/jest/",
+  "dateModified": "2026-11-20",
+  "author": { "@type": "Person", "name": "Samriddhi", "url": "https://github.com/samriddhi512" },
+  "about": { "@id": "https://samriddhi512.github.io/diff-cover-js/#software" }
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/diff-cover-js/">diff-cover-js</a>
+    <nav aria-label="Main">
+      <a href="/diff-cover-js/jest/" aria-current="page">Jest</a>
+      <a href="/diff-cover-js/vitest/">Vitest</a>
+      <a href="/diff-cover-js/github-actions/">GitHub Actions</a>
+      <a href="/diff-cover-js/comparison/">Compare tools</a>
+      <a href="https://github.com/samriddhi512/diff-cover-js">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>Jest diff coverage: test coverage on changed lines only</h1>
+    <p class="lead">Jest measures coverage per file and per project. To see how well a pull request's <strong>new lines</strong> are tested, feed Jest's lcov report to <strong>diff-cover-js</strong>, which compares it with your git diff.</p>
+
+    <h2 id="why">Why Jest's own threshold isn't enough</h2>
+    <p>Jest's <code>coverageThreshold</code> checks totals for the whole project, or for whole files and folders. On a codebase with old, untested code, that leaves two bad options: a low threshold that new code easily passes, or a high one that fails on lines nobody changed.</p>
+    <p>Options like <code>--changedSince</code> choose <em>which tests run</em>. They don't tell you whether the lines you just wrote are executed by those tests. diff-cover-js answers exactly that: of the lines added since <code>origin/main</code>, how many did Jest run?</p>
+
+    <h2 id="setup">1. Install</h2>
+<pre><code>npm install --save-dev diff-cover-js</code></pre>
+
+    <h2 id="lcov">2. Make Jest write an lcov report</h2>
+    <p>Add <code>lcov</code> to Jest's coverage reporters. Keep <code>text</code> if you still want the usual table.</p>
+<pre><code>// jest.config.js
+module.exports = {
+  collectCoverage: true,
+  coverageDirectory: 'coverage',
+  coverageReporters: ['lcov', 'text'],
+};</code></pre>
+    <p>Or pass it on the command line without changing the config:</p>
+<pre><code>npx jest --coverage --coverageReporters=lcov</code></pre>
+    <p>Either way Jest writes <code>coverage/lcov.info</code>.</p>
+
+    <h2 id="run">3. Check coverage on the changed lines</h2>
+<pre><code>npx diff-cover-js --lcov coverage/lcov.info --compare-branch origin/main --fail-under 80</code></pre>
+    <p>diff-cover-js finds the merge base with <code>origin/main</code>, collects the lines your branch adds, and reports which of them Jest executed. With <code>--fail-under 80</code> it exits with code 1 when fewer than 80% of the changed lines are covered.</p>
+    <p>Add it to <code>package.json</code> so everyone runs the same check:</p>
+<pre><code>{
+  "scripts": {
+    "test:coverage": "jest --coverage --coverageReporters=lcov",
+    "coverage:diff": "diff-cover-js --lcov coverage/lcov.info --compare-branch origin/main --fail-under 80"
+  }
+}</code></pre>
+
+    <h2 id="local">Check before you push</h2>
+    <p>By default diff-cover-js counts committed, staged <strong>and</strong> unstaged changes, so you can run it on your working copy before opening a pull request:</p>
+<pre><code>git fetch origin main
+npm run test:coverage &amp;&amp; npm run coverage:diff</code></pre>
+    <p>Pass <code>--ignore-staged --ignore-unstaged</code> to count only committed changes, or <code>--include-untracked</code> to count new files you haven't added yet.</p>
+
+    <h2 id="branches">Branch coverage on changed lines</h2>
+    <p>Jest writes branch data (<code>BRDA</code> records) to lcov by default. diff-cover-js uses it to report branch coverage for the changed lines as a separate figure, and lists the lines where a branch was never taken, such as an <code>if</code> without a test for its <code>else</code>. <code>--fail-under</code> applies to line coverage only.</p>
+
+    <h2 id="multi-project">Jest multi-project and sharded runs</h2>
+    <p>With Jest <code>projects</code> or <code>--shard</code>, the same source file can appear in several lcov blocks, or you may concatenate several lcov files. diff-cover-js merges blocks for the same file by adding their hit counts, as the <code>lcov</code> tool does, so a line covered in any project counts as covered.</p>
+<pre><code>cat coverage/shard-*/lcov.info &gt; coverage/lcov.info
+npx diff-cover-js --lcov coverage/lcov.info --compare-branch origin/main</code></pre>
+
+    <h2 id="excludes">Test files are excluded by default</h2>
+    <p>Changes to <code>*.test.*</code>, <code>*.spec.*</code>, <code>__tests__/</code>, <code>__mocks__/</code> and <code>*.d.ts</code> don't count. Add more patterns with <code>--exclude 'src/generated/**'</code>, or turn the defaults off with <code>--no-default-excludes</code>.</p>
+
+    <h2 id="reports">Reports for pull requests</h2>
+<pre><code>npx diff-cover-js --lcov coverage/lcov.info --compare-branch origin/main \
+  --format html:reports/diff-cover.html,json:reports/diff-cover.json,markdown:reports/diff-cover.md</code></pre>
+    <p>The Markdown report is ready to paste into a PR comment or a CI job summary. See the <a href="/diff-cover-js/github-actions/">GitHub Actions guide</a> for a complete workflow.</p>
+
+    <h2 id="next">Next</h2>
+    <ul>
+      <li><a href="/diff-cover-js/github-actions/">Run it on every pull request with GitHub Actions</a></li>
+      <li><a href="/diff-cover-js/vitest/">Using Vitest instead?</a></li>
+      <li><a href="https://github.com/samriddhi512/diff-cover-js#cli-flags">All CLI flags</a></li>
+    </ul>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    diff-cover-js is MIT licensed ·
+    <a href="https://www.npmjs.com/package/diff-cover-js">npm</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js">GitHub</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js/blob/main/CHANGELOG.md">Changelog</a> ·
+    <a href="https://github.com/samriddhi512/diff-cover-js/issues">Issues</a>
+  </div>
+</footer>
+</body>
+</html>
